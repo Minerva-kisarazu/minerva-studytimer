@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Minerva Elite - Final System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=EB+Garamond:wght@800&display=swap');
+        
+        :root {
+            --bg-dark: #050a14;
+            --glow-focus: #40e0d0;
+            --glow-warn: #ffcc00;
+            --glow-last: #ff3333;
+            --glow-rest: #00ff88;
+            --current-glow: var(--glow-focus);
+        }
+
+        body { 
+            background: radial-gradient(circle at 30% 50%, #0a1224 0%, var(--bg-dark) 100%);
+            color: white; font-family: 'Inter', sans-serif; 
+            margin: 0; height: 100dvh; width: 100vw; 
+            display: flex; justify-content: flex-start; align-items: center; 
+            overflow: hidden; position: relative;
+        }
+
+        /* 時計とロゴ */
+        #clock { position: absolute; top: 5vh; right: 4vw; font-size: 4.5vh; color: rgba(255,255,255,0.7); font-variant-numeric: tabular-nums; }
+        .bottom-right { position: absolute; bottom: 5vh; right: 4vw; text-align: right; }
+        .logo-text { font-family: 'EB Garamond', serif; font-size: 5vh; margin: 0; opacity: 0.9; }
+
+        /* メインタイマーエリア（円が切れないようサイズ調整） */
+        .timer-container {
+            position: relative; margin-left: 5vw; 
+            width: 80vh; height: 80vh; /* 確実に収まるサイズ */
+            display: flex; justify-content: center; align-items: center;
+        }
+
+        #gauge-svg {
+            position: absolute; width: 100%; height: 100%; overflow: visible;
+            filter: drop-shadow(0 0 15px var(--current-glow));
+            transition: filter 0.5s ease;
+        }
+        .tick-bg { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 10; }
+        .tick-active { fill: none; stroke: var(--current-glow); stroke-width: 10; transition: opacity 0.1s step-end, stroke 0.5s ease; }
+        .tick-active.off { opacity: 0; }
+
+        .inner-content { z-index: 10; text-align: center; }
+        #block-dur { font-size: 2.5vh; letter-spacing: 0.4em; opacity: 0.6; margin-bottom: 0.5vh; text-transform: uppercase; }
+        #status { font-size: 4.5vh; font-weight: 600; letter-spacing: 0.2em; margin-bottom: 1vh; }
+        #time-info { font-size: 20vh; font-weight: 700; line-height: 1; margin: 0; text-shadow: 0 0 30px var(--current-glow); }
+        #set-count { font-size: 2vh; letter-spacing: 0.2em; opacity: 0.7; margin-top: 2vh; font-weight: 700; }
+
+        /* 右側巨大掲示 */
+        .right-display { position: absolute; right: 4vw; top: 50%; transform: translateY(-50%); width: 45vw; }
+        #side-title { font-size: 15vh; font-weight: 900; line-height: 1; margin-bottom: 2vh; color: var(--current-glow); text-shadow: 0 0 30px var(--current-glow); }
+        .message-panel { background: rgba(0, 0, 0, 0.25); border-left: 1.5vh solid var(--current-glow); padding: 3vh 4vh; border-radius: 0 16px 16px 0; }
+        #message { font-size: 10vh; font-weight: 700; line-height: 1.2; margin: 0; }
+
+        /* 初期選択オーバーレイ */
+        #start-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #000; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; z-index: 1000; gap: 5vh;
+        }
+        .mode-select-box { text-align: center; border: 1px solid rgba(255,255,255,0.2); padding: 5vh; border-radius: 20px; width: 60vw; }
+        .mode-title { font-size: 3vh; color: var(--glow-focus); margin-bottom: 3vh; letter-spacing: 0.5em; }
+        .btn-group { display: flex; gap: 3vw; justify-content: center; }
+        .btn { padding: 3vh 6vh; font-size: 3vh; border: 1px solid white; background: transparent; color: white; cursor: pointer; transition: 0.3s; font-weight: 900; }
+        .btn:hover { background: white; color: black; }
+
+        /* マニュアル入力フォーム（オーバーレイ内） */
+        .manual-form { margin-top: 4vh; display: none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4vh; }
+        .input-row { display: flex; justify-content: center; gap: 2vw; margin-bottom: 3vh; }
+        .input-item { display: flex; flex-direction: column; align-items: center; }
+        .input-item label { font-size: 1.5vh; opacity: 0.6; margin-bottom: 1vh; }
+        .input-item input { background: #111; border: 1px solid #444; color: white; font-size: 4vh; width: 10vh; text-align: center; padding: 1vh; }
+    </style>
+</head>
+<body>
+    <div id="start-overlay">
+        <div class="mode-select-box">
+            <div class="mode-title">SELECT OPERATION MODE</div>
+            <div class="btn-group">
+                <button class="btn" onclick="startSystem('school')">SCHOOL MODE</button>
+                <button class="btn" onclick="showManualForm()">MANUAL MODE</button>
+            </div>
+            <div id="manual-form" class="manual-form">
+                <div class="input-row">
+                    <div class="input-item"><label>FOCUS</label><input type="number" id="in-focus" value="25"></div>
+                    <div class="input-item"><label>REST</label><input type="number" id="in-rest" value="5"></div>
+                    <div class="input-item"><label>SETS</label><input type="number" id="in-sets" value="3"></div>
+                </div>
+                <button class="btn" style="border-color: var(--glow-focus); color: var(--glow-focus);" onclick="startSystem('manual')">START MANUAL MISSION</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="clock">00:00:00</div>
+    <div class="timer-container">
+        <svg id="gauge-svg" viewBox="0 0 100 100"></svg>
+        <div class="inner-content">
+            <div id="block-dur"></div>
+            <div id="status">READY</div>
+            <div id="time-info">00:00</div>
+            <div id="set-count"></div>
+        </div>
+    </div>
+    <div class="right-display">
+        <div id="side-title">準備中</div>
+        <div class="message-panel"><div id="message">BOOTING...</div></div>
+    </div>
+    <div class="bottom-right"><p class="logo-text">学習塾ミネルバ</p></div>
+
+    <script>
+        let currentMode = 'school';
+        let isRunning = false;
+        let lastProcessedSec = -1;
+        let manualState = null;
+        let startAudio = new Audio();
+        let endAudio = new Audio();
+
+        const cyclePhases = [
+            { en: "REST TIME", jp: "休憩時間", dur: "10 MINUTES", len: 10, type: "rest" },
+            { en: "FOCUS TIME 1", jp: "学習時間", dur: "25 MINUTES", len: 25, type: "focus" },
+            { en: "REST TIME", jp: "休憩時間", dur: "5 MINUTES", len: 5, type: "rest" },
+            { en: "FOCUS TIME 2", jp: "学習時間", dur: "25 MINUTES", len: 25, type: "focus" },
+            { en: "REST TIME", jp: "休憩時間", dur: "5 MINUTES", len: 5, type: "rest" },
+            { en: "FOCUS TIME 3", jp: "学習時間", dur: "20 MINUTES", len: 20, type: "focus" }
+        ];
+
+        // ゲージ初期化
+        const svg = document.getElementById('gauge-svg');
+        const radius = 45;
+        const circ = 2 * Math.PI * radius;
+        for (let i = 0; i < 24; i++) {
+            const createTick = (cls) => {
+                const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                c.setAttribute('cx', '50'); c.setAttribute('cy', '50'); c.setAttribute('r', radius);
+                c.setAttribute('class', cls); c.setAttribute('stroke-dasharray', `${(circ/24)*0.85} ${circ}`);
+                c.setAttribute('transform', `rotate(${i * 15 - 90} 50 50)`);
+                return c;
+            };
+            svg.appendChild(createTick('tick-bg'));
+            const active = createTick('tick-active'); active.id = 'tick-' + i;
+            svg.appendChild(active);
+        }
+
+        function showManualForm() {
+            document.getElementById('manual-form').style.display = 'block';
+        }
+
+        function startSystem(mode) {
+            currentMode = mode;
+            startAudio.src = START_DATA; endAudio.src = END_DATA;
+            if (mode === 'manual') {
+                const f = parseInt(document.getElementById('in-focus').value) || 25;
+                const r = parseInt(document.getElementById('in-rest').value) || 5;
+                const s = parseInt(document.getElementById('in-sets').value) || 1;
+                manualState = { focus: f, rest: r, totalSets: s, currentSet: 1, phase: 'focus', endTime: Date.now() + f*60000 };
+            }
+            document.getElementById('start-overlay').style.display = 'none';
+            document.documentElement.requestFullscreen?.();
+            isRunning = true;
+            setInterval(update, 100);
+        }
+
+        function update() {
+            if (!isRunning) return;
+            const now = new Date();
+            document.getElementById('clock').innerText = now.toLocaleTimeString('ja-JP', {hour12:false});
+            const nowSecTotal = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+
+            let d = null;
+            if (currentMode === 'school') {
+                const anchorSec = 51000; const cycleTotalSec = 5400; 
+                let pos = (nowSecTotal - anchorSec) % cycleTotalSec;
+                if (pos < 0) pos += cycleTotalSec;
+                let cum = 0;
+                for (let p of cyclePhases) {
+                    if (pos < cum + p.len * 60) {
+                        d = { ...p, remaining: (p.len * 60) - (pos - cum), total: p.len * 60, setInfo: "" };
+                        break;
+                    }
+                    cum += p.len * 60;
+                }
+            } else if (manualState) {
+                let rem = Math.max(0, Math.ceil((manualState.endTime - Date.now()) / 1000));
+                if (rem === 0) {
+                    if (manualState.phase === 'focus') {
+                        manualState.phase = 'rest'; manualState.endTime = Date.now() + manualState.rest * 60000;
+                    } else {
+                        if (manualState.currentSet < manualState.totalSets) {
+                            manualState.currentSet++; manualState.phase = 'focus'; manualState.endTime = Date.now() + manualState.focus * 60000;
+                        } else { isRunning = false; return; }
+                    }
+                    rem = Math.max(0, Math.ceil((manualState.endTime - Date.now()) / 1000));
+                }
+                const isF = manualState.phase === 'focus';
+                d = { en: isF ? `FOCUS SET ${manualState.currentSet}` : "REST TIME", jp: isF ? "学習時間" : "休憩時間", dur: isF ? `${manualState.focus} MINUTES` : `${manualState.rest} MINUTES`, remaining: rem, total: (isF ? manualState.focus : manualState.rest) * 60, type: manualState.phase, setInfo: `SET ${manualState.currentSet} / ${manualState.totalSets}` };
+            }
+
+            if (d && lastProcessedSec !== nowSecTotal) {
+                render(d);
+                // 音声トリガー
+                if (d.type === 'focus' && d.remaining === 5) endAudio.play();
+                else if (d.type === 'rest' && d.remaining === 4) startAudio.play();
+                lastProcessedSec = nowSecTotal;
+            }
+        }
+
+        function render(d) {
+            const isF = d.type === 'focus';
+            const color = !isF ? "var(--glow-rest)" : (d.remaining <= 60 ? "var(--glow-last)" : (d.remaining <= 300 ? "var(--glow-warn)" : "var(--glow-focus)"));
+            document.documentElement.style.setProperty('--current-glow', color);
+            document.getElementById('block-dur').innerText = d.dur;
+            document.getElementById('status').innerText = d.en;
+            document.getElementById('side-title').innerText = d.jp;
+            document.getElementById('message').innerText = isF ? "私語＆スマホ厳禁！\n集中力を維持せよ。" : "喋りたい人は外に！\n脳を休ませろ。";
+            document.getElementById('time-info').innerText = Math.floor(d.remaining / 60) + ":" + String(d.remaining % 60).padStart(2, '0');
+            document.getElementById('set-count').innerText = d.setInfo;
+            const fuel = Math.ceil((d.remaining / d.total) * 24);
+            for (let i = 0; i < 24; i++) {
+                const t = document.getElementById('tick-' + i);
+                if (i < fuel) t.classList.remove('off'); else t.classList.add('off');
+            }
+        }
+
+        const START_DATA = ""; // ここにBase64を入れる
+        const END_DATA = "";   // ここにBase64を入れる
+    </script>
+</body>
+</html>
