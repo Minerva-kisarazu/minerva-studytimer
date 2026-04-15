@@ -214,7 +214,7 @@
             document.getElementById('block-dur').innerText = d.dur;
             document.getElementById('status').innerText = d.en;
             document.getElementById('side-title').innerText = d.jp;
-            document.getElementById('message').innerText = (d.en === "COMPLETE") ? "本日の修行完了。\n気をつけて帰宅せよ。" : (isF ? "私語＆スマホ厳禁！\n集中力を維持せよ。" : "喋りたい人は外に！\n脳を休ませろ。");
+            document.getElementById('message').innerText = (d.en === "COMPLETE") ? "本日の修行完了。\n気をつけて帰宅せよ。" : (isF ? "私語\n＆スマホ厳禁！\n集中力を\n維持せよ。" : "喋りたい人\nは外に！\n脳を\n休ませろ。");
             document.getElementById('time-info').innerText = (d.en === "COMPLETE") ? "FINISH" : Math.floor(d.remaining / 60) + ":" + String(d.remaining % 60).padStart(2, '0');
             document.getElementById('set-count').innerText = d.setInfo;
             const fuel = d.total > 0 ? Math.ceil((d.remaining / d.total) * 24) : 0;
