@@ -41,9 +41,9 @@
         #set-count { font-size: 2vh; letter-spacing: 0.2em; opacity: 0.7; margin-top: 2vh; font-weight: 700; }
 
         .right-display { position: absolute; right: 4vw; top: 50%; transform: translateY(-50%); width: 45vw; }
-        #side-title { font-size: 15vh; font-weight: 900; line-height: 1; margin-bottom: 2vh; color: var(--current-glow); text-shadow: 0 0 30px var(--current-glow); }
+        #side-title { font-size: 13vh; font-weight: 900; line-height: 1; margin-bottom: 2vh; color: var(--current-glow); text-shadow: 0 0 30px var(--current-glow); }
         .message-panel { background: rgba(0, 0, 0, 0.25); border-left: 1.5vh solid var(--current-glow); padding: 3vh 4vh; border-radius: 0 16px 16px 0; }
-        #message { font-size: 10vh; font-weight: 700; line-height: 1.2; margin: 0; }
+        #message { font-size: 8vh; font-weight: 700; line-height: 1.2; margin: 0; }
 
         #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; gap: 5vh; }
         .mode-select-box { text-align: center; border: 1px solid rgba(255,255,255,0.2); padding: 5vh; border-radius: 20px; width: 60vw; }
@@ -214,7 +214,7 @@
             document.getElementById('block-dur').innerText = d.dur;
             document.getElementById('status').innerText = d.en;
             document.getElementById('side-title').innerText = d.jp;
-            document.getElementById('message').innerText = (d.en === "COMPLETE") ? "本日の修行完了。\n気をつけて帰宅せよ。" : (isF ? "私語\n＆スマホ厳禁！\n集中力を\n維持せよ。" : "喋りたい人\nは外に！\n脳を\n休ませろ。");
+            document.getElementById('message').innerText = (d.en === "COMPLETE") ? "本日の勉強完了" : (isF ? "私語＆スマホ厳禁！\n集中力を維持せよ。" : "喋りたい人は外に！\n脳を休ませろ。");
             document.getElementById('time-info').innerText = (d.en === "COMPLETE") ? "FINISH" : Math.floor(d.remaining / 60) + ":" + String(d.remaining % 60).padStart(2, '0');
             document.getElementById('set-count').innerText = d.setInfo;
             const fuel = d.total > 0 ? Math.ceil((d.remaining / d.total) * 24) : 0;
