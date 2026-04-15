@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Minerva Elite - Final System</title>
+    <title>Minerva Elite - Final System v2</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=EB+Garamond:wght@800&display=swap');
         
@@ -24,23 +24,12 @@
             overflow: hidden; position: relative;
         }
 
-        /* 時計とロゴ */
         #clock { position: absolute; top: 5vh; right: 4vw; font-size: 4.5vh; color: rgba(255,255,255,0.7); font-variant-numeric: tabular-nums; }
         .bottom-right { position: absolute; bottom: 5vh; right: 4vw; text-align: right; }
         .logo-text { font-family: 'EB Garamond', serif; font-size: 5vh; margin: 0; opacity: 0.9; }
 
-        /* メインタイマーエリア（円が切れないようサイズ調整） */
-        .timer-container {
-            position: relative; margin-left: 5vw; 
-            width: 80vh; height: 80vh; /* 確実に収まるサイズ */
-            display: flex; justify-content: center; align-items: center;
-        }
-
-        #gauge-svg {
-            position: absolute; width: 100%; height: 100%; overflow: visible;
-            filter: drop-shadow(0 0 15px var(--current-glow));
-            transition: filter 0.5s ease;
-        }
+        .timer-container { position: relative; margin-left: 5vw; width: 80vh; height: 80vh; display: flex; justify-content: center; align-items: center; }
+        #gauge-svg { position: absolute; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 15px var(--current-glow)); transition: filter 0.5s ease; }
         .tick-bg { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 10; }
         .tick-active { fill: none; stroke: var(--current-glow); stroke-width: 10; transition: opacity 0.1s step-end, stroke 0.5s ease; }
         .tick-active.off { opacity: 0; }
@@ -51,25 +40,18 @@
         #time-info { font-size: 20vh; font-weight: 700; line-height: 1; margin: 0; text-shadow: 0 0 30px var(--current-glow); }
         #set-count { font-size: 2vh; letter-spacing: 0.2em; opacity: 0.7; margin-top: 2vh; font-weight: 700; }
 
-        /* 右側巨大掲示 */
         .right-display { position: absolute; right: 4vw; top: 50%; transform: translateY(-50%); width: 45vw; }
         #side-title { font-size: 15vh; font-weight: 900; line-height: 1; margin-bottom: 2vh; color: var(--current-glow); text-shadow: 0 0 30px var(--current-glow); }
         .message-panel { background: rgba(0, 0, 0, 0.25); border-left: 1.5vh solid var(--current-glow); padding: 3vh 4vh; border-radius: 0 16px 16px 0; }
         #message { font-size: 10vh; font-weight: 700; line-height: 1.2; margin: 0; }
 
-        /* 初期選択オーバーレイ */
-        #start-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: #000; display: flex; flex-direction: column; 
-            align-items: center; justify-content: center; z-index: 1000; gap: 5vh;
-        }
+        #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; gap: 5vh; }
         .mode-select-box { text-align: center; border: 1px solid rgba(255,255,255,0.2); padding: 5vh; border-radius: 20px; width: 60vw; }
         .mode-title { font-size: 3vh; color: var(--glow-focus); margin-bottom: 3vh; letter-spacing: 0.5em; }
         .btn-group { display: flex; gap: 3vw; justify-content: center; }
         .btn { padding: 3vh 6vh; font-size: 3vh; border: 1px solid white; background: transparent; color: white; cursor: pointer; transition: 0.3s; font-weight: 900; }
         .btn:hover { background: white; color: black; }
 
-        /* マニュアル入力フォーム（オーバーレイ内） */
         .manual-form { margin-top: 4vh; display: none; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 4vh; }
         .input-row { display: flex; justify-content: center; gap: 2vw; margin-bottom: 3vh; }
         .input-item { display: flex; flex-direction: column; align-items: center; }
@@ -129,7 +111,6 @@
             { en: "FOCUS TIME 3", jp: "学習時間", dur: "20 MINUTES", len: 20, type: "focus" }
         ];
 
-        // ゲージ初期化
         const svg = document.getElementById('gauge-svg');
         const radius = 45;
         const circ = 2 * Math.PI * radius;
@@ -146,9 +127,7 @@
             svg.appendChild(active);
         }
 
-        function showManualForm() {
-            document.getElementById('manual-form').style.display = 'block';
-        }
+        function showManualForm() { document.getElementById('manual-form').style.display = 'block'; }
 
         function startSystem(mode) {
             currentMode = mode;
@@ -186,23 +165,42 @@
                 }
             } else if (manualState) {
                 let rem = Math.max(0, Math.ceil((manualState.endTime - Date.now()) / 1000));
-                if (rem === 0) {
+                
+                // フェーズ切り替えの判定を「0秒を1秒間表示した後」に行うように調整
+                if (rem === 0 && lastProcessedSec !== nowSecTotal) {
                     if (manualState.phase === 'focus') {
-                        manualState.phase = 'rest'; manualState.endTime = Date.now() + manualState.rest * 60000;
-                    } else {
+                        manualState.phase = 'rest'; 
+                        manualState.endTime = Date.now() + manualState.rest * 60000 + 1000; // 0秒表示用に+1秒
+                    } else if (manualState.phase === 'rest') {
                         if (manualState.currentSet < manualState.totalSets) {
-                            manualState.currentSet++; manualState.phase = 'focus'; manualState.endTime = Date.now() + manualState.focus * 60000;
-                        } else { isRunning = false; return; }
+                            manualState.currentSet++; 
+                            manualState.phase = 'focus'; 
+                            manualState.endTime = Date.now() + manualState.focus * 60000 + 1000;
+                        } else {
+                            // 全セット終了
+                            manualState.phase = 'finished';
+                        }
                     }
-                    rem = Math.max(0, Math.ceil((manualState.endTime - Date.now()) / 1000));
                 }
-                const isF = manualState.phase === 'focus';
-                d = { en: isF ? `FOCUS SET ${manualState.currentSet}` : "REST TIME", jp: isF ? "学習時間" : "休憩時間", dur: isF ? `${manualState.focus} MINUTES` : `${manualState.rest} MINUTES`, remaining: rem, total: (isF ? manualState.focus : manualState.rest) * 60, type: manualState.phase, setInfo: `SET ${manualState.currentSet} / ${manualState.totalSets}` };
+
+                if (manualState.phase === 'finished') {
+                    d = { en: "COMPLETE", jp: "全行程終了", dur: "WELL DONE", remaining: 0, total: 1, type: 'rest', setInfo: "MISSION FINISHED" };
+                } else {
+                    const isF = manualState.phase === 'focus';
+                    d = { 
+                        en: isF ? `FOCUS SET ${manualState.currentSet}` : "REST TIME", 
+                        jp: isF ? "学習時間" : "休憩時間", 
+                        dur: isF ? `${manualState.focus} MINUTES` : `${manualState.rest} MINUTES`, 
+                        remaining: rem, 
+                        total: (isF ? manualState.focus : manualState.rest) * 60, 
+                        type: manualState.phase, 
+                        setInfo: `SET ${manualState.currentSet} / ${manualState.totalSets}` 
+                    };
+                }
             }
 
             if (d && lastProcessedSec !== nowSecTotal) {
                 render(d);
-                // 音声トリガー
                 if (d.type === 'focus' && d.remaining === 5) endAudio.play();
                 else if (d.type === 'rest' && d.remaining === 4) startAudio.play();
                 lastProcessedSec = nowSecTotal;
@@ -211,23 +209,23 @@
 
         function render(d) {
             const isF = d.type === 'focus';
-            const color = !isF ? "var(--glow-rest)" : (d.remaining <= 60 ? "var(--glow-last)" : (d.remaining <= 300 ? "var(--glow-warn)" : "var(--glow-focus)"));
+            const color = (d.en === "COMPLETE") ? "var(--glow-rest)" : (!isF ? "var(--glow-rest)" : (d.remaining <= 60 ? "var(--glow-last)" : (d.remaining <= 300 ? "var(--glow-warn)" : "var(--glow-focus)")));
             document.documentElement.style.setProperty('--current-glow', color);
             document.getElementById('block-dur').innerText = d.dur;
             document.getElementById('status').innerText = d.en;
             document.getElementById('side-title').innerText = d.jp;
-            document.getElementById('message').innerText = isF ? "私語＆スマホ厳禁！\n集中力を維持せよ。" : "喋りたい人は外に！\n脳を休ませろ。";
-            document.getElementById('time-info').innerText = Math.floor(d.remaining / 60) + ":" + String(d.remaining % 60).padStart(2, '0');
+            document.getElementById('message').innerText = (d.en === "COMPLETE") ? "本日の修行完了。\n気をつけて帰宅せよ。" : (isF ? "私語＆スマホ厳禁！\n集中力を維持せよ。" : "喋りたい人は外に！\n脳を休ませろ。");
+            document.getElementById('time-info').innerText = (d.en === "COMPLETE") ? "FINISH" : Math.floor(d.remaining / 60) + ":" + String(d.remaining % 60).padStart(2, '0');
             document.getElementById('set-count').innerText = d.setInfo;
-            const fuel = Math.ceil((d.remaining / d.total) * 24);
+            const fuel = d.total > 0 ? Math.ceil((d.remaining / d.total) * 24) : 0;
             for (let i = 0; i < 24; i++) {
                 const t = document.getElementById('tick-' + i);
                 if (i < fuel) t.classList.remove('off'); else t.classList.add('off');
             }
         }
 
-        const START_DATA = ""; // ここにBase64を入れる
-        const END_DATA = "";   // ここにBase64を入れる
+        const START_DATA = ""; 
+        const END_DATA = ""; 
     </script>
 </body>
 </html>
