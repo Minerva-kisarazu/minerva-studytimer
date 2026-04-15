@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Minerva Elite - Final System v2</title>
+    <title>Minerva Elite - Tablet Optimized</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=EB+Garamond:wght@800&display=swap');
         
@@ -24,27 +24,67 @@
             overflow: hidden; position: relative;
         }
 
-        #clock { position: absolute; top: 5vh; right: 4vw; font-size: 4.5vh; color: rgba(255,255,255,0.7); font-variant-numeric: tabular-nums; }
-        .bottom-right { position: absolute; bottom: 5vh; right: 4vw; text-align: right; }
+        /* 右上：時計（サイズ維持、位置固定） */
+        #clock { 
+            position: absolute; top: 5vh; right: 4vw; 
+            font-size: 4.5vh; color: rgba(255,255,255,0.7); 
+            font-variant-numeric: tabular-nums; 
+            z-index: 50;
+        }
+
+        /* 右下：ロゴ */
+        .bottom-right { position: absolute; bottom: 5vh; right: 4vw; text-align: right; z-index: 50; }
         .logo-text { font-family: 'EB Garamond', serif; font-size: 5vh; margin: 0; opacity: 0.9; }
 
-        .timer-container { position: relative; margin-left: 5vw; width: 80vh; height: 80vh; display: flex; justify-content: center; align-items: center; }
-        #gauge-svg { position: absolute; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 15px var(--current-glow)); transition: filter 0.5s ease; }
+        /* 左寄り：タイマーエリア（円が切れないサイズ） */
+        .timer-container { 
+            position: relative; 
+            margin-left: 4vw; 
+            width: 78vh; height: 78vh; 
+            display: flex; justify-content: center; align-items: center; 
+        }
+
+        #gauge-svg { 
+            position: absolute; width: 100%; height: 100%; overflow: visible; 
+            filter: drop-shadow(0 0 15px var(--current-glow)); 
+            transition: filter 0.5s ease; 
+        }
         .tick-bg { fill: none; stroke: rgba(255, 255, 255, 0.05); stroke-width: 10; }
         .tick-active { fill: none; stroke: var(--current-glow); stroke-width: 10; transition: opacity 0.1s step-end, stroke 0.5s ease; }
         .tick-active.off { opacity: 0; }
 
         .inner-content { z-index: 10; text-align: center; }
-        #block-dur { font-size: 2.5vh; letter-spacing: 0.4em; opacity: 0.6; margin-bottom: 0.5vh; text-transform: uppercase; }
-        #status { font-size: 4.5vh; font-weight: 600; letter-spacing: 0.2em; margin-bottom: 1vh; }
-        #time-info { font-size: 20vh; font-weight: 700; line-height: 1; margin: 0; text-shadow: 0 0 30px var(--current-glow); }
+        #block-dur { font-size: 2.3vh; letter-spacing: 0.4em; opacity: 0.6; margin-bottom: 0.5vh; text-transform: uppercase; }
+        #status { font-size: 4vh; font-weight: 600; letter-spacing: 0.2em; margin-bottom: 1vh; }
+        #time-info { font-size: 18vh; font-weight: 700; line-height: 1; margin: 0; text-shadow: 0 0 30px var(--current-glow); }
         #set-count { font-size: 2vh; letter-spacing: 0.2em; opacity: 0.7; margin-top: 2vh; font-weight: 700; }
 
-        .right-display { position: absolute; right: 3vw; top: 50%; transform: translateY(-50%); width: 45vw; }
-        #side-title { font-size: 13vh; font-weight: 900; line-height: 1; margin-bottom: 2vh; color: var(--current-glow); text-shadow: 0 0 30px var(--current-glow); }
-        .message-panel { background: rgba(0, 0, 0, 0.25); border-left: 1.5vh solid var(--current-glow); padding: 3vh 4vh; border-radius: 0 16px 16px 0; }
-        #message { font-size: 8vh; font-weight: 700; line-height: 1.2; margin: 0; }
+        /* 右側：掲示エリア（時計のラインと右端を揃えて重なりを防止） */
+        .right-display { 
+            position: absolute; 
+            right: 4vw; /* 時計と垂直に揃える */
+            top: 50%; 
+            transform: translateY(-50%); 
+            width: 38vw; /* 重なりを防ぐため幅を調整 */
+            text-align: left;
+        }
+        #side-title { 
+            font-size: 11vh; 
+            font-weight: 900; 
+            line-height: 1; 
+            margin-bottom: 2vh; 
+            color: var(--current-glow); 
+            text-shadow: 0 0 30px var(--current-glow); 
+        }
+        .message-panel { 
+            background: rgba(0, 0, 0, 0.25); 
+            border-left: 1.5vh solid var(--current-glow); 
+            padding: 3vh 4vh; 
+            border-radius: 0 16px 16px 0; 
+        }
+        #message { font-size: 7vh; font-weight: 700; line-height: 1.2; margin: 0; }
 
+        /* 起動画面 */
         #start-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 1000; gap: 5vh; }
         .mode-select-box { text-align: center; border: 1px solid rgba(255,255,255,0.2); padding: 5vh; border-radius: 20px; width: 60vw; }
         .mode-title { font-size: 3vh; color: var(--glow-focus); margin-bottom: 3vh; letter-spacing: 0.5em; }
@@ -166,18 +206,16 @@
             } else if (manualState) {
                 let rem = Math.max(0, Math.ceil((manualState.endTime - Date.now()) / 1000));
                 
-                // フェーズ切り替えの判定を「0秒を1秒間表示した後」に行うように調整
                 if (rem === 0 && lastProcessedSec !== nowSecTotal) {
                     if (manualState.phase === 'focus') {
                         manualState.phase = 'rest'; 
-                        manualState.endTime = Date.now() + manualState.rest * 60000 + 1000; // 0秒表示用に+1秒
+                        manualState.endTime = Date.now() + manualState.rest * 60000 + 1000; 
                     } else if (manualState.phase === 'rest') {
                         if (manualState.currentSet < manualState.totalSets) {
                             manualState.currentSet++; 
                             manualState.phase = 'focus'; 
                             manualState.endTime = Date.now() + manualState.focus * 60000 + 1000;
                         } else {
-                            // 全セット終了
                             manualState.phase = 'finished';
                         }
                     }
